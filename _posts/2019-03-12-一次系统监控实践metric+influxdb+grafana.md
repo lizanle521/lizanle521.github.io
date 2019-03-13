@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "系统监控可选组件"
+title:  "一次系统监控实践metric+influxdb+grafana"
 date:   2019-03-12 10:43:01 +0800
 categories: 系统监控
 tag: 系统监控
@@ -23,12 +23,12 @@ tag: 系统监控
 
 我们的需求是什么呢？因为团队很小，没有运维，我们就2个人，只希望能在应用上线的时候看到这些指标，不用去运维某个其他的项目。
 而以上ganglia,nagios,zabbix这些组件都是独立的，并不是很合适。不过如果没有其他合适的方案，也只能备选了。
-所以我们先看看metric,javamelody
+所以我们先看看metric
 
-###  metric
+###  metric+influxdb+grafana
 首先我们需要定义监控数据的产生，然后我们需要定义监控数据收集的规则，再后则是数据监控数据的展现形式，最后则是根据监控数据进行报警.
 metric的原理就是在应用程序中埋点，和程序有耦合，然后收到这些数据后，能够通过很多方式上报到第三方组件中 或者 通过http请求查看。
-这是metric的官方文档地址[地址](https://metrics.dropwizard.io/3.1.0/getting-started/#)
+这是metric的官方文档[地址](https://metrics.dropwizard.io/3.1.0/getting-started/#)
 
 
 这是我写的一个spring5的[demo](https://github.com/lizanle521/metricexample)，用来统计接口的tps。
