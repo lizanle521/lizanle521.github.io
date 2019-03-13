@@ -53,7 +53,7 @@ metric的原理就是在应用程序中埋点，和程序有耦合，然后收�
         </dependency>
 ```
 
-1. 定义一个类实现 MetricServlet.ContextListener，这是为了给ServletContext注入MetricRegistry
+-  定义一个类实现 MetricServlet.ContextListener，这是为了给ServletContext注入MetricRegistry
 
 ```text
 public class MetricsServletContextListener extends MetricsServlet.ContextListener {
@@ -67,7 +67,7 @@ public class MetricsServletContextListener extends MetricsServlet.ContextListene
 }
 ```
 
-2. web.xml配置监听器
+-  web.xml配置监听器
 
 ```text
 <listener>
@@ -84,7 +84,7 @@ public class MetricsServletContextListener extends MetricsServlet.ContextListene
 	</servlet-mapping>
 ```
 
-3. 自定义拦截器,统计每个接口的tps
+-  自定义拦截器,统计每个接口的tps
 
 ```text
 public class MetricIntercetor implements HandlerInterceptor,ApplicationContextAware {
@@ -128,7 +128,7 @@ public class MetricIntercetor implements HandlerInterceptor,ApplicationContextAw
 }
 ```
 
-4. 配置spring-mvc.xml 放在其他拦截器拦截之后
+- 配置spring-mvc.xml 放在其他拦截器拦截之后
 
 ```text
 <mvc:interceptors>
@@ -144,20 +144,20 @@ public class MetricIntercetor implements HandlerInterceptor,ApplicationContextAw
 	</mvc:interceptors>
 ```
 
-5. 通过 ip:port/metrics/访问获得json结果
+- 通过 ip:port/metrics/访问获得json结果
 
 显然 metric存在一个缺点，就是不是分布式的。我们如果有多台机器，且负载均衡的话，那么请求一次可能是同一个结果，或者说不同的结果。
 我们要对系统做整体的tps统计就达不到要求了。
 
 那么我们如果做到分布式的收集多台机器的数据上报呢？ metric有提供 influxdb ,ganglia 等上报方式
 我们先试试 influxdb的上报,用granfana展示
-1. 安装influxdb
+- 安装influxdb
 
 ```text
 wget http://dl.influxdata.com/influxdb/releases/influxdb-0.12.2-1.x86_64.rpm
 yum localinstall influxdb-0.12.2-1.x86_64.rpm
 ```
-2. 启动并查看
+- 启动并查看
 
 ```text
 systemctl start influxdb.service
@@ -166,13 +166,13 @@ systemctl status influxdb.service
 启动后打开 web 管理界面 http://192.168.2.183:8083/ 默认用户名和密码是 root 和 root. InfluxDB 的 Web 管理界面端口是 8083，HTTP API 监听端口是 8086，
 如果需要更改这些默认设定，修改 InfluxDB 的配置文件（/etc/influxdb/influxdb.conf）并重启就可以了。
 
-3. 安装grafana
+- 安装grafana
 
 ```text
 wget https://dl.grafana.com/oss/release/grafana-6.0.1-1.x86_64.rpm 
 sudo yum localinstall grafana-6.0.1-1.x86_64.rpm 
 ```
-4. 启动并查看
+- 启动并查看
 
 ```text
 systemctl start grafana-server.service
@@ -182,7 +182,7 @@ systemctl status grafana-server.service
 ![Alt grafana_datasource](/styles/images/grafana_datasource.png)
 
 那么现在我们的展示组件安装好了，我们的要修改我们的应用程序，让他来上报数据。
-1. 添加maven依赖
+- 添加maven依赖
 
 ```text
  <dependency>
@@ -192,7 +192,7 @@ systemctl status grafana-server.service
  </dependency>
 ```
 
-2. 添加一个ApplicationListener
+- 添加一个ApplicationListener
 
 ```text
 @Component
