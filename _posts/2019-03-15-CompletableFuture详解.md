@@ -11,6 +11,8 @@ tag: 多线程
 
 ## 异步并发选型
 | 描述 | Future | FutureTask	| CompletionService | CompletableFuture| 
+| ----------- | ----------------| -----------------| -----------------|---------------------|
+
 |原理|Future接口	|接口RunnableFuture的唯一实现类，RunnableFuture接口继承自Future+Runnable	|内部通过阻塞队列+FutureTask接口	|JDK8实现了Future, CompletionStage两个接口
 |多任务并发执行|	支持|支持	|支持	|支持|
 |获取任务结果的顺序	|按照提交顺序获取结果	|未知	|支持任务完成的先后顺序|	支持任务完成的先后顺序|
