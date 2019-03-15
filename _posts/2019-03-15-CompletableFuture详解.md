@@ -10,7 +10,7 @@ tag: 多线程
 {:toc}
 
 ## 异步并发选型
-|描述|Future	|FutureTask	|CompletionService	|CompletableFuture|
+|描述 |Future	|FutureTask	|CompletionService	|CompletableFuture|
 |--------|-----------|-----------|-----------|----------|
 
 |原理|Future接口	|接口RunnableFuture的唯一实现类，RunnableFuture接口继承自Future+Runnable	|内部通过阻塞队列+FutureTask接口	|JDK8实现了Future, CompletionStage两个接口
