@@ -13,11 +13,11 @@ tag: 多线程
 | 描述 | Future | FutureTask	| CompletionService | CompletableFuture| 
 | ----------- | ----------------| -----------------| -----------------|---------------------|
 
-|原理|Future接口	|接口RunnableFuture的唯一实现类，RunnableFuture接口继承自Future+Runnable	|内部通过阻塞队列+FutureTask接口	|JDK8实现了Future, CompletionStage两个接口
-|多任务并发执行|	支持|支持	|支持	|支持|
-|获取任务结果的顺序	|按照提交顺序获取结果	|未知	|支持任务完成的先后顺序|	支持任务完成的先后顺序|
-|异常捕捉	|自己捕捉	|自己捕捉	|自己捕捉	|原生API支持，返回每个任务的异常|
-|建议	|CPU高速轮询，耗资源，可以使用，但不推荐	|功能不对口，并发任务这一块多套一层，不推荐使用	|推荐使用，没有JDK8CompletableFuture之前最好的方案，没有质疑	|API极端丰富，配合流式编程，速度飞起，推荐使用！|
+|原理|Future接口|接口RunnableFuture的唯一实现类，RunnableFuture接口继承自Future+Runnable|内部通过阻塞队列+FutureTask接口|JDK8实现了Future, CompletionStage两个接口|
+|多任务并发执行|支持|支持|支持|支持|
+|获取任务结果的顺序|按照提交顺序获取结果|未知	|支持任务完成的先后顺序|支持任务完成的先后顺序|
+|异常捕捉|自己捕捉|自己捕捉|自己捕捉|原生API支持，返回每个任务的异常|
+|建议|CPU高速轮询，耗资源，可以使用，但不推荐|功能不对口，并发任务这一块多套一层，不推荐使用|推荐使用，没有JDK8CompletableFuture之前最好的方案，没有质疑|API极端丰富，配合流式编程，速度飞起，推荐使用！|
 
 
 在Java 8中, 新增加了一个包含50个方法左右的类: CompletableFuture，提供了非常强大的Future的扩展功能，可以帮助我们简化异步编程的复杂性，
