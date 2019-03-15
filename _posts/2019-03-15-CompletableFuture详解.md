@@ -66,14 +66,4 @@ CompletableFuture也实现了`Future`的以下策略
 - 自从FutuTask这个类没有直接的控制结果的计算导致他的等待被完成，取消被当做他的一种异常完成的形式，方法cancel和CompleteExceptionally(new CancellationException()).
 方法 #isCompletedExceptionally能够用于判断CompletableFuture是否有任何形式的异常完成。
 
-### 概览
-一个CompletableFuture可能有依赖的完成动作，收集在一个链栈里，通过CAS检查结果来自动完成，然后弹出一个动作并执行这个动作，适用于正常和异常的结果，异步和非异步的动作，
-双重触发器和多种形式的完成。
-非空结果属性（通过CAS设置）表明完成了，一个AltResult用来装箱null作为一个结果 或者 持有一个异常。使用一个属性使得完成的任务可以被简单的监测和触发
 
-
-
-
-
-## 主动完成
-CompletableFuture实现了`CompletionStage` 和 `Future`,Future的功能 他也有。
