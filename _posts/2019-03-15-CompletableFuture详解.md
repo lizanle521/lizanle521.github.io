@@ -78,4 +78,128 @@ CompletableFuture也实现了`Future`的以下策略
 - 自从FutuTask这个类没有直接的控制结果的计算导致他的等待被完成，取消被当做他的一种异常完成的形式，方法cancel和CompleteExceptionally(new CancellationException()).
 方法 #isCompletedExceptionally能够用于判断CompletableFuture是否有任何形式的异常完成。
 
+## 以上的翻译我们可以暂时不看了，虐心。我们来看demo吧
+我们来看个最简单的，异步获取一个数据。并且看看异步线程名
+```
+    @Test
+    public void testCompletableFuture() throws ExecutionException, InterruptedException {
+        System.out.println(Thread.currentThread().getName());
+        // supplyAsync 是异步执行，异步执行就是不会和当前主线程一起执行
+        CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
+            System.out.println(Thread.currentThread().getName());
+            return 1;});
+        assert future.get() == 1;
+    }
+```
+这个例子的输出是:
+```text
+main
+ForkJoinPool.commonPool-worker-1
+```
+显然符合执行异步代码的时候的线程 不是主线程。这里又透露了一个信息，异步线程是ForkJoinPool里边的线程。ForkJoinPool如果不明白，我们这里也不展开讲，
+暂时就当做是一个线程池吧。
+那么我们就来分析一下supplyAsync方法的源码吧
+```text
+// 是否使用线程池，ForkJoinPool.getCommonPoolParallelism 获取并行度，简单来说就是如果没有特别配置，就是根据核心数-1，如果是4核，那么并行度就是3
+private static final boolean useCommonPool =
+        (ForkJoinPool.getCommonPoolParallelism() > 1);
+//如果并行度大于1，就使用线程池，否则每个异步任务都new一个线程
+private static final Executor asyncPool = useCommonPool ?
+        ForkJoinPool.commonPool() : new ThreadPerTaskExecutor();
+public static <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
+        return asyncSupplyStage(asyncPool, supplier);
+}
+
+ static <U> CompletableFuture<U> asyncSupplyStage(Executor e,
+                                                     Supplier<U> f) {
+        if (f == null) throw new NullPointerException();
+        CompletableFuture<U> d = new CompletableFuture<U>();
+        // new一个AsyncSupply任务扔到线程池
+        e.execute(new AsyncSupply<U>(d, f));
+        return d;
+}
+```
+AsyncSupply是一个线程，他的构造方法和run方法源码如下：
+```text
+// 很明显，构造方法只是给 dep 和 fn赋值
+ CompletableFuture<T> dep; Supplier<T> fn;
+        AsyncSupply(CompletableFuture<T> dep, Supplier<T> fn) {
+            this.dep = dep; this.fn = fn;
+        }
+ public void run() {
+            CompletableFuture<T> d; Supplier<T> f;
+            // 如果构造方法传进来的dep和fn不为空的话
+            if ((d = dep) != null && (f = fn) != null) {
+                dep = null; fn = null;
+                // 如果dep的结果为空
+                if (d.result == null) {
+                    try {
+                    // 将f的结果传到d的result里边，f.get()实际上就是执行了
+                    //   System.out.println(Thread.currentThread().getName());
+                    //   return 1; 
+                        d.completeValue(f.get());
+                    } catch (Throwable ex) {
+                        d.completeThrowable(ex);
+                    }
+                }
+                // 触发后续其他依赖
+                d.postComplete();
+            }
+        }
+```
+我们来看看completeValue方法
+```text
+//  static final AltResult NIL = new AltResult(null);
+final boolean completeValue(T t) {
+// 通过CAS更新当前结果，修改前期望当前RESULT结果为空，期望设置的结果为，如果结果为空，则返回一个AltResult对象
+// 否则返回t.
+        return UNSAFE.compareAndSwapObject(this, RESULT, null,
+                                           (t == null) ? NIL : t);
+    }
+```
+到这里其实这个demo的原理已经分析清楚了，就是将传进来的 Supplier 封装成 AsyncSupply丢到线程池。
+但是我们目前对这个触发后续其他依赖d.postComplete()方法很感兴趣。我们看看CompletableFuture的postComplete方法
+```text
+ /**
+      弹出所有的可达依赖并且尝试去触发他们。只有在当前步骤完成的时候才去调用
+     * Pops and tries to trigger all reachable dependents.  Call only
+     * when known to be done.
+     */
+    final void postComplete() {
+        /*
+          每个步骤中，CompletableFuture持有的当前的依赖（stack对象）都会弹出并执行，一段时间内是线性扩展的。
+          防止无限递归。
+         * On each step, variable f holds current dependents to pop
+         * and run.  It is extended along only one path at a time,
+         * pushing others to avoid unbounded recursion.
+         */
+         // 定义一个指针，这个指针会变化
+        CompletableFuture<?> f = this;
+        // 这是一个无锁并发栈 
+        Completion h;
+        // 如果当前f指向CompletableFuture的栈不为空，或者当前CompletableFuture的栈不为空
+        while ((h = f.stack) != null ||
+               (f != this && (h = (f = this).stack) != null)) {
+            CompletableFuture<?> d; Completion t;
+            // head是当前的stack的头部，通过cas来改变
+            if (f.casStack(h, t = h.next)) {
+                // 如果存在头部
+                if (t != null) {
+                    // 如果 f（代表一个步骤）不是自身，那么就将头部推入栈中
+                    if (f != this) {
+                        // 将当前的头推入当前的CompletableFuture的栈中
+                        pushStack(h);
+                        continue;
+                    }
+                    // 将 head的下一个节点置空
+                    h.next = null;    // detach
+                }
+                // 调用head的 tryFire方法
+                f = (d = h.tryFire(NESTED)) == null ? this : d;
+            }
+        }
+    }
+```
+
+
 
