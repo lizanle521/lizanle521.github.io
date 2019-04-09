@@ -35,20 +35,20 @@ serverCnxnFactory=org.apache.zookeeper.server.NettyServerCnxnFactory
 看起来一切都十分完美。
 ### 事情的转折
 突然有一天，我又发现Zookeeper连不上了，心里一凉。马上上线查看，zk进程还在，但是已经不响应了。看了一下端口开启情况，如图：
-![Alt zkclosewait](../styles/images/zkclosewait.png) 
+![Alt zkclosewait](/styles/images/zkclosewait.png) 
 看到这里大家会说，哎哟，closewait,这个我知道，肯定是zk代码写的不对，导致的链接没有释放。
 很显然，zk如果有这么严重的问题的话，就不会有这么广阔的使用场景了。
 没办法，我又备份了日志，并且先重启了zk. 然后将zkjvmerror（对，没错，就是这个heapdump日志）下载到了本地。
 下载了eclipseMemoryAnalyzer,将这个文件导入了mat.
 这么一打开，不看不知道，一看吓一跳。各位，请看下图：
-![Alt overview](../styles/images/matoverview.png)
+![Alt overview](/styles/images/matoverview.png)
 DataTree这个对象占用了1.3G. 明显的内存泄露没跑了。为什么DataTree会占用这么大的内存呢。我们知道DataTree是zk的内存的抽象
 就是zk的各种节点都在这里有保存。那么他既然是zk的内存抽象，所以肯定要继续分析它(他是根对象)，我们要看看这个DataTree里边的
 对象，于是我们点击这个里边的Leak Suspects-->Details. 我们发现下图：
-![Alt mattree](../styles/images/matoverview.png)
+![Alt mattree](/styles/images/matoverview.png)
 这说明什么，DataTree里边的WatchManager占了99%。那我们继续看这个对象的内存占用，怎么看呢，我们点击一个WatchManager-->List Objects
 --> with outgoing references . 看WatchManager的出引用，就是看他包含了哪些东西。我们看到如下图：
-![Alt watchmanager](../styles/images/matwatchmanager.png)
+![Alt watchmanager](/styles/images/matwatchmanager.png)
 这说明里边的watch2paht内存泄露了。具体的源码分析很简单，
 watch2path保存了会话 和 会话下的路经集合。NIOServerCnxn会有一个移除会话的操作。但是netty中是用的用户线程池，所以不需要移除。
 问题就是出在这个不移除，用户线程池用的是 Executors.newCachedThreadPool()建立的worker线程池，在60秒内建立了大量的会话（11万个），
