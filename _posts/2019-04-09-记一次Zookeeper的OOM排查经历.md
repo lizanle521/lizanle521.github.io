@@ -45,7 +45,7 @@ serverCnxnFactory=org.apache.zookeeper.server.NettyServerCnxnFactory
 DataTree这个对象占用了1.3G. 明显的内存泄露没跑了。为什么DataTree会占用这么大的内存呢。我们知道DataTree是zk的内存的抽象
 就是zk的各种节点都在这里有保存。那么他既然是zk的内存抽象，所以肯定要继续分析它(他是根对象)，我们要看看这个DataTree里边的
 对象，于是我们点击这个里边的Leak Suspects-->Details. 我们发现下图：
-![Alt mattree](/styles/images/matoverview.png)
+![Alt mattree](/styles/images/mattree.png)
 这说明什么，DataTree里边的WatchManager占了99%。那我们继续看这个对象的内存占用，怎么看呢，我们点击一个WatchManager-->List Objects
 --> with outgoing references . 看WatchManager的出引用，就是看他包含了哪些东西。我们看到如下图：
 ![Alt watchmanager](/styles/images/matwatchmanager.png)
