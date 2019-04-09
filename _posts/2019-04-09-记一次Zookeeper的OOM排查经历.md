@@ -50,8 +50,9 @@ DataTree这个对象占用了1.3G. 明显的内存泄露没跑了。为什么Dat
 --> with outgoing references . 看WatchManager的出引用，就是看他包含了哪些东西。我们看到如下图：
 ![Alt watchmanager](/styles/images/matwatchmanager.png)
 这说明里边的watch2paht内存泄露了。具体的源码分析很简单，
-watch2path保存了会话 和 会话下的路经集合。NIOServerCnxn会有一个移除会话的操作。但是netty中是用的用户线程池，所以不需要移除。
-问题就是出在这个不移除，用户线程池用的是 Executors.newCachedThreadPool()建立的worker线程池，在60秒内建立了大量的会话（11万个），
+watch2path保存了会话 和 会话下的路经集合。NIOServerCnxn会有一个移除会话的操作。但是NettyServerCnxn中是用的用户线程池，所以不需要移除。
+Netty用户线程池用的是 Executors.newCachedThreadPool()建立的worker线程池，这个线程池的缺点就是如果线程运行时间长，则其余的线程则会无限new
+在60秒内建立了大量的会话（11万个），
 导致了内存泄露并最终溢出。
 
 ### 最终解决方案
