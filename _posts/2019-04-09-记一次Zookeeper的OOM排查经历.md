@@ -49,14 +49,34 @@ DataTree这个对象占用了1.3G. 明显的内存泄露没跑了。为什么Dat
 这说明什么，DataTree里边的WatchManager占了99%。那我们继续看这个对象的内存占用，怎么看呢，我们点击一个WatchManager-->List Objects
 --> with outgoing references . 看WatchManager的出引用，就是看他包含了哪些东西。我们看到如下图：
 ![Alt watchmanager](/styles/images/matwatchmanager.png)
-这说明里边的watch2paht内存泄露了。具体的源码分析很简单，
+这说明里边的watch2paht内存泄露了。
+本来我怀疑的是：
 watch2path保存了会话 和 会话下的路经集合。NIOServerCnxn会有一个移除会话的操作。但是NettyServerCnxn中是用的用户线程池，所以不需要移除。
 Netty用户线程池用的是 Executors.newCachedThreadPool()建立的worker线程池，这个线程池的缺点就是如果线程运行时间长，则其余的线程则会无限new
 在60秒内建立了大量的会话（11万个），
 导致了内存泄露并最终溢出。
-
+结果呢，我对这个heapdump进行了一个oql的查询：
+```text
+SELECT established.fastTime FROM org.apache.zookeeper.server.NettyServerCnxn  
+SELECT (lastResponseTime - established.fastTime) FROM org.apache.zookeeper.server.NettyServerCnxn  
+```
+然后我将里边的 fastTime 这个毫秒时间戳通过 new Date(fastTime) 并格式化之后，发现这些链接建立并不是在一分钟之内。
+我就去查找了一下zookeeper的jira.发现了一个如下的issue:
+```text
+https://issues.apache.org/jira/browse/ZOOKEEPER-3131?jql=project%20%3D%20ZOOKEEPER%20AND%20text%20~%20OOM
+```
+这个issue里边的一段话是这么说的：
+```text
+In some cases, the variable watch2Paths in Class WatchManager does not remove the entry, 
+ven if the associated value "HashSet" is empty already. 
+The type of key in Map watch2Paths is Watcher, instance of NettyServerCnxn. 
+If it is not removed when the associated set of paths is empty, 
+it will cause the memory increases little by little, and OutOfMemoryError triggered finally. 
+```
+显然，我们换成了NettyServerCnxn之后导致的 。这个issue已经被fix了。
 ### 最终解决方案
 1. dubbo超时时间设为10s
+2. zookeeper版本升级到3.6.0
 
 
 
