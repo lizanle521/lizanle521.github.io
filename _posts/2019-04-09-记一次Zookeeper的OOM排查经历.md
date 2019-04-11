@@ -74,6 +74,21 @@ If it is not removed when the associated set of paths is empty,
 it will cause the memory increases little by little, and OutOfMemoryError triggered finally. 
 ```
 显然，我们换成了NettyServerCnxn之后导致的 。这个issue已经被fix了。
+
+### 本地验证
+我为了验证是NettyServerCnxn导致的问题，进行了一个简单的验证。
+用的是[apache Dubbo 样例源码](https://github.com/apache/incubator-dubbo-samples)里边的dubbo-sample-basic模块。
+思路很简单，就是dubbo-consumer启动后会建立连接，断掉后会断开连接
+只需要在启动的时候设置 
+```text
+ System.setProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY,"org.apache.zookeeper.server.NettyServerCnxnFactory");
+```
+就可以启用NettyServerCnxnFactory。然后我们启用provider,对consumer不停的断开重启断开重启，在jconsole里边我们手动强制heapdump,
+再次导入mat,用
+```text
+SELECT established.fastTime FROM org.apache.zookeeper.server.NettyServerCnxn  
+```
+一看，明明只有2个会话，却存在这么多的 会话watch对象。就很显然了。目前还没去看3.6.0版本是怎么解决这个问题的。
 ### 最终解决方案
 1. dubbo超时时间设为10s
 2. zookeeper版本升级到3.6.0
