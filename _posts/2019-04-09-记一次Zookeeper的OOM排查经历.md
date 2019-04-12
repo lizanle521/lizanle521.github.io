@@ -97,7 +97,7 @@ SELECT established.fastTime FROM org.apache.zookeeper.server.NettyServerCnxn
  }
 ```
 ### 最终解决方案
-1. dubbo超时时间设为10s
+1. dubbo超时时间设为10s,将NettyServerCnxn改为NIOServerCnxn 。 减少NIO的epoll bug几率
 
 
 
