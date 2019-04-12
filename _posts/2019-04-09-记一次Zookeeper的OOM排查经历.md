@@ -18,7 +18,7 @@ tag: 问题排查
 于是我把sessionid拿到服务器的日志里去查找，发现是一个定时任务在调用一个dubbo服务，dubbo用了分布式锁，在锁期间，这个dubbo服务
 里边去请求了一个地址，而这个地址的域名是被封了（没有备案），导致这个dubbo一直阻塞直到超时（没错，我们的dubbo超时设置为了60s）。
 zk的超时时间默认是40s. 就是说链接时间内，这个会话一直存在（分布式锁是临时顺序节点，dubbo服务没结束，锁没释放，会话没退出）。这就触发（不稳定的触发）了隐藏的一个著名的
-bug`nio epoll` [相关issue地址](https://issues.apache.org/jira/browse/DIRMINA-678)，虽然这里解决了，但是我看代码里还是原生的NIO. 
+bug`nio epoll` [相关issue地址](https://issues.apache.org/jira/browse/ZOOKEEPER-427)，虽然这里解决了，但是我看代码里还是原生的NIO. 
 因为Zookeeper 3.4.8版本默认用的是NIOServerCnxn,原生的NIO就有这个bug.
 
 ### 事情的承接
